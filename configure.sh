@@ -1225,6 +1225,12 @@ main() {
     echo -e "${CYAN}=========================================${NC}"
     echo ""
 
+    if [[ "${1:-}" == "--env-only" ]]; then
+        generate_env
+        log "Done. Run 'make up' (or 'make restart') for containers to pick up the new .env."
+        exit 0
+    fi
+
     preseed_sonarr_anime
     preseed_bazarr_anime
     generate_env

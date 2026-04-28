@@ -3,7 +3,7 @@ ifdef GPU
 	COMPOSE_CMD += -f docker-compose.gpu.yml
 endif
 
-.PHONY: up down restart logs status pull setup setup-gpu configure bootstrap help
+.PHONY: up down restart logs status pull setup setup-gpu configure refresh-env bootstrap help
 
 help: ## Show available commands
 	@echo "Usage: make <target> [GPU=1]"
@@ -36,6 +36,10 @@ pull: ## Pull latest images
 configure: ## Configure running services from config.toml
 	@test -f config.toml || { echo "config.toml not found. Copy config.toml.example to config.toml and edit it."; exit 1; }
 	./configure.sh
+
+refresh-env: ## Regenerate .env from config.toml without touching running services
+	@test -f config.toml || { echo "config.toml not found."; exit 1; }
+	./configure.sh --env-only
 
 setup: ## Initial setup - create .env from example
 	@test -f .env && echo ".env already exists, skipping" || cp .env.example .env && echo "Created .env from .env.example - edit it with your settings"
