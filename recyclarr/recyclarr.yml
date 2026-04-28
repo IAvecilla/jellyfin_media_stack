@@ -1,0 +1,55 @@
+# Recyclarr Configuration
+# Syncs TRaSH Guides quality profiles and custom formats into Radarr & Sonarr
+# Works with both torrent (qBittorrent) and usenet (SABnzbd) - no special config needed
+# Docs: https://recyclarr.dev/wiki/yaml/yaml-reference/
+
+# --- RADARR (Movies) ---
+radarr:
+  movies:
+    base_url: !secret radarr_url
+    api_key: !secret radarr_apikey
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: true
+
+    include:
+      # File size limits from TRaSH
+      - template: radarr-quality-definition-movie
+
+      # HD 1080p Bluray + WEB - best balance of quality and size
+      - template: radarr-quality-profile-hd-bluray-web
+      - template: radarr-custom-formats-hd-bluray-web
+
+      # 4K Bluray + WEB
+      - template: radarr-quality-profile-uhd-bluray-web
+      - template: radarr-custom-formats-uhd-bluray-web
+
+# --- SONARR (TV Shows) ---
+sonarr:
+  tv:
+    base_url: !secret sonarr_url
+    api_key: !secret sonarr_apikey
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: true
+
+    include:
+      # File size limits from TRaSH
+      - template: sonarr-quality-definition-series
+
+      # WEB 1080p - best profile for TV (most shows are WEB releases)
+      - template: sonarr-v4-quality-profile-web-1080p
+      - template: sonarr-v4-custom-formats-web-1080p
+
+      # 4K WEB
+      - template: sonarr-v4-quality-profile-web-2160p
+      - template: sonarr-v4-custom-formats-web-2160p
+
+  anime:
+    base_url: !secret sonarr_anime_url
+    api_key: !secret sonarr_anime_apikey
+    delete_old_custom_formats: true
+    replace_existing_custom_formats: true
+
+    include:
+      - template: sonarr-quality-definition-anime
+      - template: sonarr-v4-quality-profile-anime
+      - template: sonarr-v4-custom-formats-anime

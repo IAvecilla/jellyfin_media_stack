@@ -1,0 +1,145 @@
+# =============================================================================
+# Media Server Configuration
+# =============================================================================
+# Copy this file to config.toml and edit with your settings.
+# Then run: make configure
+# =============================================================================
+
+# General
+timezone = "America/Argentina/Buenos_Aires"
+data_location = "/path/to/your/media"
+
+# =============================================================================
+# Credentials
+# =============================================================================
+
+[jellyfin]
+username = "admin"
+password = "your_jellyfin_password"
+
+[qbittorrent]
+username = "admin"
+password = "your_qbittorrent_password"
+
+# =============================================================================
+# Downloads
+# =============================================================================
+
+[downloads]
+complete_path = "/data/torrents/complete"
+incomplete_path = "/data/torrents/incomplete"
+seeding_ratio = 1.0
+seeding_time_minutes = 1440
+
+# =============================================================================
+# Subtitles
+# =============================================================================
+
+[subtitles]
+languages = ["es", "en"]
+providers = ["opensubtitles", "subdivx"]
+
+# =============================================================================
+# Quality Profiles (managed by Recyclarr)
+# =============================================================================
+
+[quality]
+sonarr_profile = "WEB-1080p"
+sonarr_anime_profile = "Anime"
+radarr_profile = "HD Bluray + WEB"
+
+# =============================================================================
+# Indexers
+# =============================================================================
+# Add one [[indexers]] block per indexer.
+# - definitionName: Prowlarr indexer definition (e.g. "1337x", "YTS", "Nyaa")
+# - enable: true/false
+# - flaresolverr: true if the indexer needs FlareSolverr to bypass Cloudflare
+# - anime: true to tag as anime indexer
+# - fields: key-value pairs specific to the indexer definition
+# =============================================================================
+
+[[indexers]]
+name = "1337x"
+definitionName = "1337x"
+enable = true
+flaresolverr = true
+anime = false
+[indexers.fields]
+# No extra fields required for 1337x
+
+[[indexers]]
+name = "YTS"
+definitionName = "YTS"
+enable = true
+flaresolverr = false
+anime = false
+[indexers.fields]
+
+[[indexers]]
+name = "Nyaa"
+definitionName = "Nyaa.si"
+enable = true
+flaresolverr = false
+anime = true
+[indexers.fields]
+
+[[indexers]]
+name = "NZBgeek"
+implementation = "Newznab"
+enable = true
+flaresolverr = false
+anime = true
+[indexers.fields]
+baseUrl = "https://api.nzbgeek.info"
+apiPath = "/api"
+apiKey = "YOUR_NZBGEEK_API_KEY"
+
+# =============================================================================
+# VPN
+# =============================================================================
+
+[vpn]
+enable = true
+provider = "protonvpn"
+type = "openvpn"
+server_countries = "Argentina"
+
+# OpenVPN credentials (ProtonVPN, NordVPN, Surfshark, etc.)
+openvpn_user = "your_openvpn_username"
+openvpn_password = "your_openvpn_password"
+
+# WireGuard credentials (Mullvad, custom) — leave empty if using OpenVPN
+wireguard_private_key = ""
+wireguard_addresses = ""
+
+# =============================================================================
+# Usenet Providers
+# =============================================================================
+# Add one [[usenet_providers]] block per provider.
+# =============================================================================
+
+# [[usenet_providers]]
+# name = "Newshosting"
+# enable = true
+# host = "news.newshosting.com"
+# port = 563
+# ssl = true
+# username = "your_username"
+# password = "your_password"
+# connections = 30
+
+# =============================================================================
+# Immich (photo library)
+# =============================================================================
+# upload_location: where Immich stores uploaded photos.
+#                  Defaults to "${data_location}/immich" if left empty.
+# db_password:     Postgres password. configure.sh generates a random one if empty.
+# =============================================================================
+
+[immich]
+version = "release"
+upload_location = ""
+db_username = "postgres"
+db_database_name = "immich"
+db_password = ""

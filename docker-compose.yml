@@ -1,0 +1,462 @@
+services:
+  jellyfin:
+    image: jellyfin/jellyfin
+    container_name: jellyfin
+    restart: unless-stopped
+    environment:
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./jellyfin-config:/config
+      - ./jellyfin-cache:/cache
+      - ${DATA_LOCATION}:/data
+    ports:
+      - 8700:8096
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  gluetun:
+    image: qmcgaw/gluetun
+    container_name: gluetun
+    cap_add:
+      - NET_ADMIN
+    devices:
+      - /dev/net/tun
+    networks:
+      - default
+      - prowlarr
+    ports:
+      - 8701:8701   # qBittorrent Web UI
+      - 29956:29956   # torrent port
+      - 29956:29956/udp
+      - 7878:7878   # Radarr
+      - 8989:8989   # Sonarr
+      - 6767:6767   # Bazarr
+      - 8191:8191   # FlareSolverr
+      - 8990:8990   # Sonarr Anime
+      - 6868:6868   # Bazarr Anime
+      - 8080:8080   # SABnzbd
+    volumes:
+      - ./gluetun:/gluetun
+    environment:
+      - VPN_TYPE=${VPN_TYPE:-openvpn}
+      - VPN_SERVICE_PROVIDER=${VPN_SERVICE_PROVIDER:-protonvpn}
+      - SERVER_COUNTRIES=${SERVER_COUNTRIES:-Argentina}
+      # OpenVPN credentials (ProtonVPN, NordVPN, Surfshark, etc.)
+      - OPENVPN_USER=${OPENVPN_USER:-}
+      - OPENVPN_PASSWORD=${OPENVPN_PASSWORD:-}
+      # WireGuard credentials (Mullvad, custom)
+      - WIREGUARD_PRIVATE_KEY=${WIREGUARD_PRIVATE_KEY:-}
+      - WIREGUARD_ADDRESSES=${WIREGUARD_ADDRESSES:-}
+      - VPN_PORT_FORWARDING=on
+      - DOT=on
+      - DOT_PROVIDERS=cloudflare
+      - DNS_KEEP_NAMESERVER=on
+      - DNS_ADDRESS=1.1.1.1
+      - TZ=${TIMEZONE}
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://localhost:9999"]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  qbittorrent:
+    image: lscr.io/linuxserver/qbittorrent
+    container_name: qbittorrent
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+      - WEBUI_PORT=8701
+      - WEBUI_ADDRESS=0.0.0.0
+      - WEBUI_EXTERNAL_ACCESS=true
+    volumes:
+      - ./qbittorrent:/config
+      - ${DATA_LOCATION}:/data
+    restart: unless-stopped
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  radarr:
+    image: lscr.io/linuxserver/radarr
+    container_name: radarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./radarr:/config
+      - ${DATA_LOCATION}:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  sonarr:
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./sonarr:/config
+      - ${DATA_LOCATION}:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  sonarr-anime:
+    image: lscr.io/linuxserver/sonarr
+    container_name: sonarr-anime
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./sonarr-anime:/config
+      - ${DATA_LOCATION}:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bazarr:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./bazarr:/config
+      - ${DATA_LOCATION}:/data
+      - ./bazarr/custom/subdivx.py:/app/bazarr/bin/custom_libs/subliminal_patch/providers/subdivx.py:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  bazarr-anime:
+    image: lscr.io/linuxserver/bazarr:latest
+    container_name: bazarr-anime
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./bazarr-anime:/config
+      - ${DATA_LOCATION}:/data
+      - ./bazarr/custom/subdivx.py:/app/bazarr/bin/custom_libs/subliminal_patch/providers/subdivx.py:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prowlarr:
+    image: lscr.io/linuxserver/prowlarr
+    container_name: prowlarr
+    restart: unless-stopped
+    networks:
+      - prowlarr
+    ports:
+      - 9696:9696
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./prowlarr:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  sabnzbd:
+    image: lscr.io/linuxserver/sabnzbd:latest
+    container_name: sabnzbd
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - PUID=1000
+      - PGID=1000
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./sabnzbd:/config
+      - ${DATA_LOCATION}:/data
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  flaresolverr:
+    image: ghcr.io/flaresolverr/flaresolverr:latest
+    container_name: flaresolverr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+    environment:
+      - TZ=${TIMEZONE}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  seerr:
+    image: ghcr.io/seerr-team/seerr:latest
+    init: true
+    container_name: seerr
+    restart: unless-stopped
+    environment:
+      - TZ=${TIMEZONE}
+      - LOG_LEVEL=info
+    ports:
+      - "5055:5055"
+    volumes:
+      - ./jellyseerr:/app/config
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      jellyfin:
+        condition: service_started
+      sonarr:
+        condition: service_started
+      sonarr-anime:
+        condition: service_started
+      radarr:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  recyclarr:
+    image: ghcr.io/recyclarr/recyclarr:latest
+    container_name: recyclarr
+    restart: unless-stopped
+    network_mode: "service:gluetun"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      sonarr:
+        condition: service_started
+      sonarr-anime:
+        condition: service_started
+      radarr:
+        condition: service_started
+    environment:
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./recyclarr:/config
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  homepage:
+    image: ghcr.io/gethomepage/homepage:latest
+    container_name: homepage
+    restart: unless-stopped
+    networks:
+      - default
+      - prowlarr
+    env_file:
+      - ./homepage/.env
+    environment:
+      - TZ=${TIMEZONE}
+    volumes:
+      - ./homepage:/app/config
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    ports:
+      - "3010:3000"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  prograrr:
+    image: ignacioavecilla/prograrr:latest
+    container_name: prograrr
+    restart: unless-stopped
+    environment:
+      - TZ=${TIMEZONE}
+      - PORT=3000
+      - PROGRARR_API_KEY=${PROGRARR_API_KEY}
+      - JELLYSEERR_URL=http://seerr:5055
+      - JELLYSEERR_API_KEY=${JELLYSEERR_API_KEY}
+      - SONARR_URL=http://gluetun:8989
+      - SONARR_API_KEY=${SONARR_API_KEY}
+      - RADARR_URL=http://gluetun:7878
+      - RADARR_API_KEY=${RADARR_API_KEY}
+      - QBITTORRENT_URL=http://gluetun:8701
+      - QBITTORRENT_USERNAME=${QBITTORRENT_USERNAME}
+      - QBITTORRENT_PASSWORD=${QBITTORRENT_PASSWORD}
+    ports:
+      - "3000:3000"
+    depends_on:
+      gluetun:
+        condition: service_healthy
+      seerr:
+        condition: service_started
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  watchtower:
+    image: containrrr/watchtower:latest
+    container_name: watchtower
+    restart: unless-stopped
+    environment:
+      - TZ=${TIMEZONE}
+      - WATCHTOWER_CLEANUP=true
+      - WATCHTOWER_SCHEDULE=0 0 4 * * *
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-server:
+    image: ghcr.io/immich-app/immich-server:${IMMICH_VERSION:-release}
+    container_name: immich_server
+    restart: unless-stopped
+    environment:
+      - TZ=${TIMEZONE}
+      - DB_HOSTNAME=immich_database
+      - DB_USERNAME=${IMMICH_DB_USERNAME:-postgres}
+      - DB_PASSWORD=${IMMICH_DB_PASSWORD}
+      - DB_DATABASE_NAME=${IMMICH_DB_DATABASE_NAME:-immich}
+      - REDIS_HOSTNAME=immich_redis
+    volumes:
+      - ${IMMICH_UPLOAD_LOCATION}:/data
+      - /etc/localtime:/etc/localtime:ro
+    ports:
+      - "2283:2283"
+    depends_on:
+      immich-redis:
+        condition: service_started
+      immich-database:
+        condition: service_started
+    healthcheck:
+      disable: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-machine-learning:
+    image: ghcr.io/immich-app/immich-machine-learning:${IMMICH_VERSION:-release}
+    container_name: immich_machine_learning
+    restart: unless-stopped
+    environment:
+      - TZ=${TIMEZONE}
+    volumes:
+      - immich-model-cache:/cache
+    healthcheck:
+      disable: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-redis:
+    image: docker.io/valkey/valkey:9@sha256:3b55fbaa0cd93cf0d9d961f405e4dfcc70efe325e2d84da207a0a8e6d8fde4f9
+    container_name: immich_redis
+    restart: unless-stopped
+    healthcheck:
+      test: redis-cli ping || exit 1
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  immich-database:
+    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0@sha256:bcf63357191b76a916ae5eb93464d65c07511da41e3bf7a8416db519b40b1c23
+    container_name: immich_database
+    restart: unless-stopped
+    environment:
+      - POSTGRES_USER=${IMMICH_DB_USERNAME:-postgres}
+      - POSTGRES_PASSWORD=${IMMICH_DB_PASSWORD}
+      - POSTGRES_DB=${IMMICH_DB_DATABASE_NAME:-immich}
+      - POSTGRES_INITDB_ARGS=--data-checksums
+    volumes:
+      - ./immich/postgres:/var/lib/postgresql/data
+    shm_size: 128mb
+    healthcheck:
+      disable: false
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  immich-model-cache:
+
+networks:
+  prowlarr:
+    name: prowlarr
